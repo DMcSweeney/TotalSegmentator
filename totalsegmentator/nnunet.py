@@ -149,6 +149,17 @@ def nnUNet_predict_image(file_in, file_out, task_id, model="3d_fullres", folds=N
     if img_type == "nifti" and output_type == "dicom":
         raise ValueError("To use output type dicom you also have to use a Dicom image as input.")
 
+    if img_type == "dicom":
+        if not quiet: print("Converting dicom to nifti...")
+        # converted_path = file out with the file name removed and the converted file name added
+        converted_path = file_out.parent / "converted_dcm.nii.gz"
+        dcm_to_nifti(file_in, converted_path, verbose=verbose)
+        file_in_dcm = file_in
+        file_in = converted_path
+        # if not multilabel_image:
+        #     shutil.copy(file_in, file_out / "input_file.nii.gz")
+        if not quiet: print(f"  found image with shape {nib.load(file_in).shape}")
+
     # for debugging
     # tmp_dir = file_in.parent / ("nnunet_tmp_" + ''.join(random.Random().choices(string.ascii_uppercase + string.digits, k=8)))
     # (tmp_dir).mkdir(exist_ok=True)
@@ -156,16 +167,6 @@ def nnUNet_predict_image(file_in, file_out, task_id, model="3d_fullres", folds=N
     with tempfile.TemporaryDirectory(prefix="nnunet_tmp_") as tmp_folder:
         tmp_dir = Path(tmp_folder)
         if verbose: print(f"tmp_dir: {tmp_dir}")
-
-        if img_type == "dicom":
-            if not quiet: print("Converting dicom to nifti...")
-            (tmp_dir / "dcm").mkdir()  # make subdir otherwise this file would be included by nnUNet_predict
-            dcm_to_nifti(file_in, tmp_dir / "dcm" / "converted_dcm.nii.gz", verbose=verbose)
-            file_in_dcm = file_in
-            file_in = tmp_dir / "dcm" / "converted_dcm.nii.gz"
-            # if not multilabel_image:
-            #     shutil.copy(file_in, file_out / "input_file.nii.gz")
-            if not quiet: print(f"  found image with shape {nib.load(file_in).shape}")
 
         img_in_orig = nib.load(file_in)
         if len(img_in_orig.shape) == 2:
@@ -403,4 +404,4 @@ def nnUNet_predict_image(file_in, file_out, task_id, model="3d_fullres", folds=N
                 skin = extract_skin(img_in_orig, nib.load(file_out / "body.nii.gz"))
                 nib.save(skin, file_out / "skin.nii.gz")
 
-    return nib.Nifti1Image(img_data, img_pred.affine)
+    return img_in_orig, nib.Nifti1Image(img_data, img_pred.affine)
