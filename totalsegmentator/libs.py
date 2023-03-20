@@ -37,7 +37,8 @@ def get_config_dir():
         config_dir = Path(os.environ["TOTALSEG_WEIGHTS_PATH"]) / "nnUNet"
     else:
         # in docker container finding home not properly working therefore map to /tmp
-        home_path = Path("/tmp") if str(Path.home()) == "/" else Path.home()
+        #home_path = Path("/tmp") if str(Path.home()) == "/" else Path.home()
+        home_path = Path(os.environ["SCRATCH"])
         config_dir = home_path / ".totalsegmentator/nnunet/results/nnUNet"
     return config_dir
 
